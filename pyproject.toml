@@ -1,4 +1,4 @@
-[build-system]
+[project]
 name = "pymcp"
 version = "0.1.0"
 description = "Python implementation of the Model Context Protocol (MCP)"
