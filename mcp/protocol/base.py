@@ -8,7 +8,7 @@ implementing the JSON-RPC 2.0 specification with Pydantic models.
 from enum import IntEnum
 from typing import Any, Dict, List, Optional, Union, ClassVar, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, RootModel
 
 
 class ErrorCode(IntEnum):
@@ -90,20 +90,18 @@ class Notification(BaseModel):
     params: Optional[Dict[str, Any]] = Field(None, description="Method parameters")
 
 
-class BatchRequest(BaseModel):
+class BatchRequest(RootModel[List[Request]]):
     """JSON-RPC 2.0 batch request."""
-    
-    __root__: List[Request] = Field(..., description="List of requests")
     
     def __iter__(self):
         """Allow iterating through requests."""
-        return iter(self.__root__)
+        return iter(self.root)
     
     def __len__(self) -> int:
         """Return the number of requests."""
-        return len(self.__root__)
+        return len(self.root)
     
-    @field_validator('__root__')
+    @field_validator('root')
     @classmethod
     def validate_batch(cls, requests: List[Request]) -> List[Request]:
         """Validate batch request."""
@@ -117,26 +115,24 @@ class BatchRequest(BaseModel):
     
     def get_request_by_id(self, id_value: Union[str, int]) -> Optional[Request]:
         """Find a request in the batch by its ID."""
-        for req in self.__root__:
+        for req in self.root:
             if req.id == id_value:
                 return req
         return None
 
 
-class BatchResponse(BaseModel):
+class BatchResponse(RootModel[List[Response]]):
     """JSON-RPC 2.0 batch response."""
-    
-    __root__: List[Response] = Field(..., description="List of responses")
     
     def __iter__(self):
         """Allow iterating through responses."""
-        return iter(self.__root__)
+        return iter(self.root)
     
     def __len__(self) -> int:
         """Return the number of responses."""
-        return len(self.__root__)
+        return len(self.root)
     
-    @field_validator('__root__')
+    @field_validator('root')
     @classmethod
     def validate_batch(cls, responses: List[Response]) -> List[Response]:
         """Validate batch response."""

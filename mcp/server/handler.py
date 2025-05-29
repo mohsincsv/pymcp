@@ -336,7 +336,7 @@ class MCPRequestHandler(RequestHandler):
             elif isinstance(response, Response):
                 valid_responses.append(response)
         
-        return BatchResponse(__root__=valid_responses)
+        return BatchResponse(valid_responses)
     
     async def _handle_initialize(
         self,
