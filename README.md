@@ -8,79 +8,168 @@ It is inspired by (but not a direct port of) the [go-go-mcp](https://github.com/
 * dynamic tool loading from YAML definitions  
 * a clear project structure suitable for production-grade open source work  
 
----
-
-## Repository
-
-* **GitHub:** <https://github.com/mohsincsv/pymcp>  
-* **Default branch:** `main`  
-* **License:** MIT  
-
----
-
-## Current Status
-
-All core functionality is implemented and tested:
-
-| Category        | Capability                                                          | Status |
-|-----------------|---------------------------------------------------------------------|--------|
-| Protocol        | JSON-RPC 2.0 messages, batch processing, MCP core methods           | Complete |
-| Transports      | `stdio` (CLI ↔ LLM), `HTTP` + Server-Sent Events (SSE)              | Complete |
-| Server Core     | Session store, request router, graceful shutdown                    | Complete |
-| Tool System     | Pluggable registry, YAML loader, shell adapter, streaming results   | Complete |
-| Client Library  | Full client with stdio and HTTP transports, CLI integration         | Complete |
-| Configuration   | YAML profiles, environment overrides, hot reload                    | Complete |
-| Documentation   | Reference material in `/docs` (continuously updated)               | Ongoing |
-
----
 
 ## Installation
 
-> Requires **Python 3.11+** and a working C compiler for optional dependencies.
-
-1. Clone and install dependencies:
+### 1. Development checkout (recommended)
 
 ```bash
 git clone https://github.com/mohsincsv/pymcp.git
 cd pymcp
-poetry install            # or: pip install -e ".[dev]"
-pre-commit install        # optional – lint/format on commit
+pip install -e ".[dev]"      # or: poetry install
+pre-commit install           # lint / format on every commit
 ```
 
-2. Run the test suite:
+### 2. Editable install from local path
 
 ```bash
-poetry run pytest
+pip install -e /path/to/pymcp
+```
+
+(There’s no PyPI package yet—ship coming when the API freezes.)
+
+---
+
+## Overview – what’s inside
+
+| Component            | Path                   | Role |
+|----------------------|------------------------|------|
+| Protocol layer       | `mcp.protocol`         | Pydantic models for JSON-RPC + MCP messages |
+| Transport layer      | `mcp.transport`        | `stdio` and `sse` (FastAPI) strategies |
+| Server core          | `mcp.server`           | Request router, session store, graceful shutdown |
+| Tool system          | `mcp.tools`            | `Tool` ABC, registry, YAML loader, streaming |
+| Prompt & resources   | `mcp.prompts` / `resources` | Same registry pattern, lighter weight |
+| Client library       | `mcp.client`           | Sync / async calls, facade over transports |
+| CLI                  | `cli/mcp.py`           | Typer entry-point wrapping everything |
+
+You can drop a YAML file in a watched folder and the server picks it up with no restart.
+
+---
+
+## Supported MCP methods
+
+| Method              | Purpose                                  |
+|---------------------|------------------------------------------|
+| `initialize`        | handshake / capability negotiation       |
+| `ping`              | health check                             |
+| `prompts/list`      | list prompts                             |
+| `prompts/get`       | get prompt content                       |
+| `resources/list`    | list static resources                    |
+| `resources/read`    | read resource                            |
+| `tools/list`        | list registered tools                    |
+| `tools/call`        | run a tool (streaming supported)         |
+
+_Not yet implemented_: notifications, `resources/subscribe`.
+
+---
+
+## Running
+
+### Basic usage (stdio server + client)
+
+```bash
+# terminal 1 – start a stdio server
+python -m mcp.server start --transport stdio
+
+# terminal 2 – connect with a client via the same pipe
+python -m mcp.client tools list
+```
+
+### Server mode
+
+```bash
+# stdio (default)
+python -m mcp.server start --transport stdio
+
+# HTTP + SSE on port 3000
+python -m mcp.server start --transport sse --port 3000
+```
+
+The server watches `--tool-dir` folders and reloads on file changes.
+
+### Server tools (no long-running server)
+
+```bash
+python -m mcp.server tools list --tool-dir ./examples
+python -m mcp.server tools call echo --args message="Hello"
+```
+
+### Client mode
+
+```bash
+# list tools from a running HTTP server
+python -m mcp.client tools list --transport http --url http://localhost:3000
+
+# call a tool with JSON parameters
+python -m mcp.client tools call echo --json '{"message": "Hi"}'
 ```
 
 ---
 
-## Quick Start
+## Debug mode
 
-### Start a local MCP server (stdio)
+Add `--debug` to any command for verbose logs:
 
 ```bash
-poetry run mcp server start --transport stdio
+python -m mcp.server start --transport sse --debug
 ```
 
-### Start an HTTP/SSE server
+---
+
+## Configuration
+
+A config file can hold multiple **profiles**.  
+Create a skeleton:
 
 ```bash
-poetry run mcp server start --transport sse --port 8000
+python -m mcp.config init
 ```
 
-### List available tools
+Example `mcp.yaml`:
 
-```bash
-poetry run mcp client tools list
+```yaml
+default_profile: dev
+profiles:
+  dev:
+    transport: stdio
+    tool_dirs: ["./examples"]
+    debug: true
+  http:
+    transport: sse
+    host: 0.0.0.0
+    port: 9000
+    tool_dirs: ["./examples"]
 ```
 
-### Call a tool over HTTP
+Helpful commands:
 
 ```bash
-http POST http://localhost:8000/mcp \
-     jsonrpc=2.0 id=1 method=tools/call \
-     params:='{"name":"echo","args":{"message":"Hello, MCP!"}}'
+python -m mcp.config list-profiles
+python -m mcp.config show-profile dev
+python -m mcp.config set-default-profile http
+```
+
+---
+
+## Shell commands (YAML tools)
+
+Create `examples/echo.yaml`:
+
+```yaml
+name: echo
+description: Echo a message
+parameters:
+  message:
+    type: string
+command: |
+  echo "{{ message }}"
+```
+
+Run it directly:
+
+```bash
+python -m mcp.tool load examples/echo.yaml
+python -m mcp.tool call echo --args '{"message":"works"}'
 ```
 
 ---
@@ -119,6 +208,14 @@ A simplified data flow:
 ```
 Client ─▶ Transport ─▶ RequestHandler ─▶ ToolRegistry ─▶ Tool ─▶ Response
 ```
+
+1. Client serialises a JSON-RPC request.  
+2. Transport (stdio or HTTP/SSE) feeds it to the `Server`.  
+3. `MCPRequestHandler` routes the call (`tools/call`, `prompts/get`, …).  
+4. Registries return the right object; it runs and optionally streams back chunks.  
+5. The same path in reverse sends responses to the client.
+
+Everything is async and testable—no global mysticism.
 
 ---
 
