@@ -6,7 +6,33 @@ It is inspired by (but not a direct port of) the excellent [go-go-mcp](https://g
 * idiomatic Python design patterns for protocol, plugin and transport layers  
 * async (or green-thread) concurrency compared with Go goroutines  
 * dynamic tool loading from YAML definitions  
-* clean project structure, CI, and documentation suitable for real-world OSS work
+* clean project structure, CI, and documentation suitable for real-world OSS work  
+
+---
+
+## 📦 Repository
+
+* **GitHub:** <https://github.com/mohsincsv/pymcp>  
+* **Default branch:** `main`  
+* **License:** MIT  
+* **Latest release:** _in development_  
+* **CI status:** _coming soon_ <!-- badge placeholder -->
+
+---
+
+## 🚀 Project Status & Progress
+
+| Phase | Scope | Status |
+|-------|-------|--------|
+| 0 | Project scaffold, Poetry/Hatch config, linting, pre-commit, MIT license | **✅ Complete** |
+| 1 | Core JSON-RPC 2.0 & MCP protocol models with validation and full test suite | **✅ Complete** |
+| 2 | Transport layer:<br>• StdioTransport (CLI)<br>• SSETransport (FastAPI) with streaming | **✅ Complete** |
+| 3 | Server core: session store, request router, graceful shutdown | 🛠 _Next up_ |
+| 4 | Tool system: registry, YAML loader, shell adapter, example tools | ⏳ Planned |
+| 5 | Prompts & resources registry + handlers | ⏳ Planned |
+| 6 | Client library & Typer CLI | ⏳ Planned |
+| 7 | Configuration profiles, hot reload | ⏳ Planned |
+| 8 | Docs, CI, first `v0.1.0` release | ⏳ Planned |
 
 ---
 
@@ -16,14 +42,12 @@ It is inspired by (but not a direct port of) the excellent [go-go-mcp](https://g
 |-----------------|----------------------------------------------------------------|
 | **Protocol**    | JSON-RPC 2.0 messages, batch processing, MCP core methods (`initialize`, `prompts/*`, `tools/*`) |
 | **Transports**  | `stdio` (CLI ↔ LLM), `HTTP` + Server-Sent Events (SSE) |
-| **Server Core** | Session store, request router, graceful shutdown |
-| **Tools**       | Pluggable registry, schema discovery, streaming responses, YAML-defined shell adapters |
-| **Client**      | Minimal client library + Typer-based CLI (`client tools list`, `client tools call …`) |
-| **Config**      | YAML profiles, environment overrides, hot reload |
-| **DevX**        | Type hints, Ruff/Black, pre-commit hooks, GitHub Actions matrix |
-| **Docs**        | Architecture diagrams & API reference in `/docs` |
-
-See the full milestone roadmap in [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
+| **Server Core** | Session store, request router, graceful shutdown *(next)* |
+| **Tools**       | Pluggable registry, schema discovery, streaming responses *(planned)* |
+| **Client**      | Minimal client library + Typer-based CLI *(planned)* |
+| **Config**      | YAML profiles, environment overrides, hot reload *(planned)* |
+| **DevX**        | Type hints, Ruff/Black, pre-commit hooks, GitHub Actions matrix *(CI coming)* |
+| **Docs**        | Architecture diagrams & API reference in `/docs` *(later)* |
 
 ---
 
@@ -34,7 +58,7 @@ See the full milestone roadmap in [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
 ### 1 – Clone & bootstrap
 
 ```bash
-git clone https://github.com/<your-user>/pymcp.git
+git clone https://github.com/mohsincsv/pymcp.git
 cd pymcp
 # Recommended: use Poetry or Hatch
 poetry install  # or: pip install -e ".[dev]"
@@ -87,14 +111,14 @@ pymcp/
 ├── mcp/                 # Library code
 │   ├── protocol/        # JSON-RPC & MCP message models
 │   ├── transport/       # stdio, http, sse
-│   ├── server/          # core server + session handling
-│   ├── client/          # client utilities
-│   ├── tools/           # base classes, registry, loaders
-│   ├── prompts/         # prompt registry
-│   ├── config/          # YAML profile loader & models
+│   ├── server/          # core server + session handling (WIP)
+│   ├── client/          # client utilities (planned)
+│   ├── tools/           # base classes, registry, loaders (planned)
+│   ├── prompts/         # prompt registry (planned)
+│   ├── config/          # YAML profile loader & models (planned)
 │   └── utils/           # logging, typing helpers
-├── cli/                 # Typer CLI entry point (`mcp`)
-├── docs/                # Extended documentation
+├── cli/                 # Typer CLI entry point (`mcp`) (planned)
+├── docs/                # Extended documentation (to be written)
 ├── tests/               # pytest test suite
 └── examples/            # Sample YAML tools & demo scripts
 ```
@@ -103,10 +127,10 @@ pymcp/
 
 ## 🏗️ Architecture Overview
 
-1. **Protocol Layer** – validates & serialises JSON-RPC requests.
-2. **Transport Layer** – abstracts stdio, HTTP, SSE streams.
-3. **Server Core** – routes parsed requests to method handlers, maintains sessions.
-4. **Tool System** – registry of `Tool` objects (native Python classes or shell wrappers) discovered via YAML or entry points.
+1. **Protocol Layer** – validates & serialises JSON-RPC requests.  
+2. **Transport Layer** – abstracts stdio, HTTP, SSE streams.  
+3. **Server Core** – routes parsed requests to method handlers, maintains sessions.  
+4. **Tool System** – registry of `Tool` objects (native Python classes or shell wrappers) discovered via YAML or entry points.  
 5. **Client Library** – thin wrapper around transport for synchronous or async calls.
 
 A simplified flow:
