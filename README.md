@@ -1,6 +1,7 @@
 # PyMCP – Python Model Context Protocol Implementation
 
-PyMCP is a **MIT-licensed** re-implementation of the [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol/specification) in pure Python ≥ 3.11.  
+PyMCP is a **MIT-licensed** re-implementation of the [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol/specification) in pure Python.
+
 It is inspired by (but not a direct port of) the [go-go-mcp](https://github.com/go-go-golems/go-go-mcp) project and demonstrates:
 
 * idiomatic Python design for protocol, plugin and transport layers  
